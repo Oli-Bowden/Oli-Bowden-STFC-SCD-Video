@@ -67,13 +67,25 @@ body { margin:0; overflow:hidden; font-family:Arial; }
   device-orientation-permission-ui="enabled:true"
 >
 <a-assets>
-  <video id="videoAsset" src="video.mp4" preload="auto" loop crossorigin="anonymous" playsinline></video>
+  <video id="videoAsset"
+         src="video.mp4"
+         preload="auto"
+         loop
+         crossorigin="anonymous"
+         playsinline>
+  </video>
 </a-assets>
 
 <a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
 
 <a-entity mindar-image-target="targetIndex:0" id="target">
-  <a-video id="arVideo" src="#videoAsset" width="1.6" height="0.9" visible="false"></a-video>
+  <!-- IMPORTANT: width & height = 1 so scaling works properly -->
+  <a-video id="arVideo"
+           src="#videoAsset"
+           width="1"
+           height="1"
+           visible="false">
+  </a-video>
 </a-entity>
 
 </a-scene>
@@ -92,26 +104,35 @@ const overlay = document.getElementById('soundOverlay');
 const toggleBtn = document.getElementById('togglePlayPauseBtn');
 const closeBtn = document.getElementById('closeBtn');
 
-const scaleMultiplier = 0.4;
+const scaleMultiplier = 0.75; // 🔧 CHANGE THIS TO RESIZE VIDEO
 
-// 🎯 aspect ratio scale
+// 🎯 Correct video proportions + scaling
 video.addEventListener('loadedmetadata', () => {
-  const aspect = video.videoWidth / video.videoHeight;
-<a-video id="arVideo" src="#videoAsset" width="1" height="1" visible="false"></a-video>
+  const aspect = video.videoWidth / video.videoHeight; // 16:9
+  videoEntity.object3D.scale.set(
+    scaleMultiplier * aspect,
+    scaleMultiplier,
+    1
+  );
 });
 
-// 🔊 enable sound overlay
+// 🔊 Enable sound on first tap
 overlay.addEventListener('click', () => {
   video.muted = false;
   video.play().then(() => video.pause());
   overlay.style.display = 'none';
 });
 
-// ▶ toggle play
-function updateToggleBtn() { toggleBtn.textContent = video.paused ? '▶' : '❚❚'; }
-toggleBtn.addEventListener('click', () => { video.paused ? video.play() : video.pause(); updateToggleBtn(); });
+// ▶ Play / Pause toggle
+function updateToggleBtn() {
+  toggleBtn.textContent = video.paused ? '▶' : '❚❚';
+}
+toggleBtn.addEventListener('click', () => {
+  video.paused ? video.play() : video.pause();
+  updateToggleBtn();
+});
 
-// ❌ close
+// ❌ Close button
 closeBtn.addEventListener('click', () => {
   video.pause();
   video.currentTime = 0;
@@ -119,9 +140,16 @@ closeBtn.addEventListener('click', () => {
   updateToggleBtn();
 });
 
-// 🎯 show/hide
-target.addEventListener('targetFound', () => { videoEntity.object3D.visible = true; video.play(); updateToggleBtn(); });
-target.addEventListener('targetLost', () => { video.pause(); updateToggleBtn(); });
+// 🎯 Show / hide on tracking
+target.addEventListener('targetFound', () => {
+  videoEntity.object3D.visible = true;
+  video.play();
+  updateToggleBtn();
+});
+target.addEventListener('targetLost', () => {
+  video.pause();
+  updateToggleBtn();
+});
 
 updateToggleBtn();
 
