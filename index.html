@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>MindAR Video with Correct Aspect Ratio & Enable Sound Overlay</title>
+  <title>MindAR Video with Toggle Play/Pause + Close (Scaled Larger)</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -13,21 +13,20 @@
   <style>
     body { margin: 0; overflow: hidden; }
 
-    /* Full screen overlay for enabling sound */
-    #enableSoundOverlay {
+    /* Fullscreen enable audio overlay */
+    #enableAudioOverlay {
       position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
+      top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0, 0, 0, 0.9);
       color: white;
       font-family: Arial, sans-serif;
-      font-size: 28px;
       display: flex;
       justify-content: center;
       align-items: center;
-      text-align: center;
-      z-index: 2000;
-      user-select: none;
+      z-index: 9999;
       cursor: pointer;
+      font-size: 24px;
+      text-align: center;
       padding: 20px;
     }
 
@@ -79,7 +78,7 @@
 
 <body>
 
-  <div id="enableSoundOverlay">Tap to enable sound</div>
+  <div id="enableAudioOverlay">Tap anywhere to enable audio</div>
 
   <a-scene
     mindar-image="imageTargetSrc: targets.mind;"
@@ -115,52 +114,39 @@
 
   <script>
     window.onload = () => {
+      const enableAudioOverlay = document.getElementById('enableAudioOverlay');
       const video = document.querySelector('#videoAsset');
       const videoEntity = document.querySelector('#arVideo');
       const target = document.querySelector('#target');
 
       const toggleBtn = document.getElementById('togglePlayPauseBtn');
       const closeBtn = document.getElementById('closeBtn');
-      const enableSoundOverlay = document.getElementById('enableSoundOverlay');
 
-      // Poster size in meters (A4 portrait): width = 0.21m, height = 0.297m
-      const posterWidth = 0.21;
-      const posterHeight = 0.297;
-
-      // Video intrinsic size
+      // Poster physical width in meters (A4 width approx 0.210m)
+      const posterWidth = 0.210;
+      // Video native resolution
       const videoWidth = 1920;
       const videoHeight = 1080;
 
-      // Calculate aspect ratios
-      const posterAspect = posterHeight / posterWidth;  // 0.297 / 0.21 = ~1.414 (portrait)
-      const videoAspect = videoHeight / videoWidth;    // 1080 / 1920 = 0.5625 (landscape)
+      // Scale multiplier to increase video size relative to poster size
+      const scaleMultiplier = 3;
 
-      // Decide scale factors to fit video to poster width
-      // We'll fix width to posterWidth, and scale height accordingly to keep video aspect ratio
-      // So width scale = posterWidth
-      // height scale = posterWidth * (videoHeight / videoWidth)
-      // But since the poster is portrait, video will be narrower in height.
+      // Set initial scale on video entity respecting aspect ratio and multiplier
+      function setVideoScale() {
+        const scaleX = posterWidth * scaleMultiplier;
+        const scaleY = (posterWidth * (videoHeight / videoWidth)) * scaleMultiplier;
+        videoEntity.object3D.scale.set(scaleX, scaleY, 1);
+      }
 
-      // So we scale videoEntity accordingly:
-      // We want video width to match posterWidth
-      // So scaleX = posterWidth
-      // scaleY = posterWidth * (videoHeight / videoWidth)
-
-      const scaleX = posterWidth;
-      const scaleY = posterWidth * (videoHeight / videoWidth);
-
-      videoEntity.object3D.scale.set(scaleX, scaleY, 1);
-
-      // Enable sound on first tap
-      enableSoundOverlay.addEventListener('click', () => {
+      // Enable audio overlay tap handler
+      function enableAudio() {
         video.muted = false;
-        video.play().then(() => {
-          video.pause();
-          enableSoundOverlay.style.display = 'none';
-        });
-      });
+        video.play().then(() => video.pause());
+        enableAudioOverlay.style.display = 'none';
+      }
+      enableAudioOverlay.addEventListener('click', enableAudio);
 
-      // Update toggle play/pause button
+      // Toggle play/pause and update button text
       function updateToggleBtn() {
         toggleBtn.textContent = video.paused ? '▶' : '❚❚';
       }
@@ -174,6 +160,7 @@
         updateToggleBtn();
       });
 
+      // Close button stops video and hides it
       closeBtn.addEventListener('click', () => {
         video.pause();
         video.currentTime = 0;
@@ -194,8 +181,8 @@
         updateToggleBtn();
       });
 
-      // Initialize button state & hide video initially
-      videoEntity.object3D.visible = false;
+      // Initialize video scale and button state
+      setVideoScale();
       updateToggleBtn();
     };
   </script>
