@@ -97,7 +97,7 @@ const scaleMultiplier = 0.4;
 // 🎯 aspect ratio scale
 video.addEventListener('loadedmetadata', () => {
   const aspect = video.videoWidth / video.videoHeight;
-  videoEntity.object3D.scale.set(scaleMultiplier * aspect, scaleMultiplier, 1);
+<a-video id="arVideo" src="#videoAsset" width="1" height="1" visible="false"></a-video>
 });
 
 // 🔊 enable sound overlay
