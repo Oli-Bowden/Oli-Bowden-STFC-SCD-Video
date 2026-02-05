@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>MindAR Video (Stabilised)</title>
+  <title>MindAR Video AR</title>
 
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
@@ -47,26 +47,27 @@
     #audioOverlay {
       position: fixed;
       inset: 0;
-      background: black;
+      background: rgba(0,0,0,0.85);
       color: white;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 22px;
+      text-align: center;
       z-index: 2000;
+      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
 
-<div id="audioOverlay">Tap to enable sound</div>
-
 <a-scene
-  mindar-image="imageTargetSrc: targets.mind;"
+  mindar-image="imageTargetSrc: targets.mind; filterMinCF: 0.0001; filterBeta: 0.001;"
   vr-mode-ui="enabled: false"
   device-orientation-permission-ui="enabled: true"
 >
+
   <a-assets>
     <video id="videoAsset"
            src="video.mp4"
@@ -82,11 +83,10 @@
   <a-entity mindar-image-target="targetIndex: 0" id="target">
     <a-video id="arVideo"
              src="#videoAsset"
-             width="1"
-             height="1"
+             width="1.6"
+             height="0.9"
              position="0 0 0"
-             visible="false"
-             smooth-follow>
+             visible="false">
     </a-video>
   </a-entity>
 
@@ -94,88 +94,60 @@
 
 <div id="togglePlayPauseBtn" class="btn">▶</div>
 <div id="closeBtn">✕</div>
+<div id="audioOverlay">Tap to Enable Sound</div>
 
 <script>
-/* ---------------- SMOOTHING COMPONENT ---------------- */
-AFRAME.registerComponent('smooth-follow', {
-  schema: { positionLerp: {default: 0.12}, rotationLerp: {default: 0.12} },
-  init() {
-    this.p = new THREE.Vector3();
-    this.q = new THREE.Quaternion();
-    this.ready = false;
-  },
-  tick() {
-    const o = this.el.object3D;
-    if (!this.ready) {
-      this.p.copy(o.position);
-      this.q.copy(o.quaternion);
-      this.ready = true;
-    }
-    this.p.lerp(o.position, this.data.positionLerp);
-    o.position.copy(this.p);
-    this.q.slerp(o.quaternion, this.data.rotationLerp);
-    o.quaternion.copy(this.q);
-  }
-});
-/* ------------------------------------------------------ */
-
 window.onload = () => {
 
   const video = document.querySelector('#videoAsset');
   const videoEntity = document.querySelector('#arVideo');
   const target = document.querySelector('#target');
+
   const toggleBtn = document.getElementById('togglePlayPauseBtn');
   const closeBtn = document.getElementById('closeBtn');
-  const overlay = document.getElementById('audioOverlay');
+  const audioOverlay = document.getElementById('audioOverlay');
 
-  /* ----- AUDIO UNLOCK ----- */
-  overlay.addEventListener('click', () => {
-    video.muted = false;
-    video.play().then(() => video.pause());
-    overlay.style.display = 'none';
-  });
+  const scaleMultiplier = 1.2; // YOUR SIZE CONTROL
 
-  function updateBtn() {
+  videoEntity.object3D.scale.set(scaleMultiplier, scaleMultiplier, scaleMultiplier);
+
+  function updateToggleBtn() {
     toggleBtn.textContent = video.paused ? '▶' : '❚❚';
   }
 
+  audioOverlay.addEventListener('click', () => {
+    video.muted = false;
+    video.play().then(() => {
+      video.pause();
+      audioOverlay.style.display = 'none';
+    });
+  });
+
   toggleBtn.addEventListener('click', () => {
-    video.paused ? video.play() : video.pause();
-    updateBtn();
+    if (video.paused) video.play();
+    else video.pause();
+    updateToggleBtn();
   });
 
   closeBtn.addEventListener('click', () => {
     video.pause();
     video.currentTime = 0;
     videoEntity.object3D.visible = false;
-    updateBtn();
+    updateToggleBtn();
   });
 
   target.addEventListener('targetFound', () => {
     videoEntity.object3D.visible = true;
     video.play();
-    updateBtn();
+    updateToggleBtn();
   });
 
   target.addEventListener('targetLost', () => {
     video.pause();
-    updateBtn();
+    updateToggleBtn();
   });
 
-  /* ----- AUTO ASPECT RATIO + SCALE ----- */
-  video.addEventListener('loadedmetadata', () => {
-    const aspect = video.videoWidth / video.videoHeight; // 16:9
-    const posterWidth = 0.21; // A4 portrait width in metres
-    const scaleMultiplier = 2.2; // YOUR working value
-
-    videoEntity.object3D.scale.set(
-      posterWidth * scaleMultiplier * aspect,
-      posterWidth * scaleMultiplier,
-      1
-    );
-  });
-
-  updateBtn();
+  updateToggleBtn();
 };
 </script>
 
