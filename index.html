@@ -1,158 +1,153 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8" />
-<title>Stable MindAR Video</title>
+  <meta charset="utf-8" />
+  <title>MindAR Video AR</title>
 
-<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
-<style>
-body { margin:0; overflow:hidden; font-family:Arial; }
+  <style>
+    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
 
-.btn {
-  position: fixed;
-  bottom: 20px;
-  width: 70px;
-  height: 70px;
-  background: rgba(0,0,0,0.7);
-  color: white;
-  font-size: 36px;
-  text-align: center;
-  line-height: 70px;
-  border-radius: 50%;
-  z-index: 1000;
-  cursor: pointer;
-}
-#togglePlayPauseBtn { left:20px; }
+    .btn {
+      position: fixed;
+      bottom: 20px;
+      width: 70px;
+      height: 70px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      font-size: 36px;
+      text-align: center;
+      line-height: 70px;
+      border-radius: 50%;
+      z-index: 1000;
+      user-select: none;
+      cursor: pointer;
+    }
 
-#closeBtn {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  width: 55px;
-  height: 55px;
-  background: rgba(0,0,0,0.7);
-  color: white;
-  font-size: 26px;
-  text-align: center;
-  line-height: 55px;
-  border-radius: 50%;
-  z-index: 1000;
-  cursor: pointer;
-}
+    #togglePlayPauseBtn { left: 20px; }
 
-#soundOverlay {
-  position: fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:#000;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:24px;
-  z-index:2000;
-}
-</style>
+    #closeBtn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 55px;
+      height: 55px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      font-size: 26px;
+      text-align: center;
+      line-height: 55px;
+      border-radius: 50%;
+      z-index: 1000;
+      cursor: pointer;
+    }
+
+    #audioOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      text-align: center;
+      z-index: 2000;
+      cursor: pointer;
+    }
+  </style>
 </head>
 
 <body>
 
-<div id="soundOverlay">Tap to enable sound</div>
-
 <a-scene
-  mindar-image="imageTargetSrc: targets.mind; filterMinCF:0.0001; filterBeta:0.001;"
-  vr-mode-ui="enabled:false"
-  device-orientation-permission-ui="enabled:true"
+  mindar-image="imageTargetSrc: targets.mind; filterMinCF: 0.0001; filterBeta: 0.001;"
+  vr-mode-ui="enabled: false"
+  device-orientation-permission-ui="enabled: true"
 >
-<a-assets>
-  <video id="videoAsset"
-         src="video.mp4"
-         preload="auto"
-         loop
-         crossorigin="anonymous"
-         playsinline>
-  </video>
-</a-assets>
 
-<a-camera position="0 0 0" look-controls="enabled:false"></a-camera>
+  <a-assets>
+    <video id="videoAsset"
+           src="video.mp4"
+           preload="auto"
+           loop
+           crossorigin="anonymous"
+           playsinline>
+    </video>
+  </a-assets>
 
-<a-entity mindar-image-target="targetIndex:0" id="target">
-  <!-- IMPORTANT: width & height = 1 so scaling works properly -->
-  <a-video id="arVideo"
-           src="#videoAsset"
-           width="1"
-           height="1"
-           visible="false">
-  </a-video>
-</a-entity>
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+  <a-entity mindar-image-target="targetIndex: 0" id="target">
+    <a-video id="arVideo"
+             src="#videoAsset"
+             width="1.6"
+             height="0.9"
+             position="0 0 0"
+             visible="false">
+    </a-video>
+  </a-entity>
 
 </a-scene>
 
 <div id="togglePlayPauseBtn" class="btn">▶</div>
 <div id="closeBtn">✕</div>
+<div id="audioOverlay">Tap to Enable Sound</div>
 
 <script>
 window.onload = () => {
 
-const video = document.querySelector('#videoAsset');
-const videoEntity = document.querySelector('#arVideo');
-const target = document.querySelector('#target');
-const overlay = document.getElementById('soundOverlay');
+  const video = document.querySelector('#videoAsset');
+  const videoEntity = document.querySelector('#arVideo');
+  const target = document.querySelector('#target');
 
-const toggleBtn = document.getElementById('togglePlayPauseBtn');
-const closeBtn = document.getElementById('closeBtn');
+  const toggleBtn = document.getElementById('togglePlayPauseBtn');
+  const closeBtn = document.getElementById('closeBtn');
+  const audioOverlay = document.getElementById('audioOverlay');
 
-const scaleMultiplier = 0.75; // 🔧 CHANGE THIS TO RESIZE VIDEO
+  const scaleMultiplier = 0.65; // YOUR SIZE CONTROL
 
-// 🎯 Correct video proportions + scaling
-video.addEventListener('loadedmetadata', () => {
-  const aspect = video.videoWidth / video.videoHeight; // 16:9
-  videoEntity.object3D.scale.set(
-    scaleMultiplier * aspect,
-    scaleMultiplier,
-    1
-  );
-});
+  videoEntity.object3D.scale.set(scaleMultiplier, scaleMultiplier, scaleMultiplier);
 
-// 🔊 Enable sound on first tap
-overlay.addEventListener('click', () => {
-  video.muted = false;
-  video.play().then(() => video.pause());
-  overlay.style.display = 'none';
-});
+  function updateToggleBtn() {
+    toggleBtn.textContent = video.paused ? '▶' : '❚❚';
+  }
 
-// ▶ Play / Pause toggle
-function updateToggleBtn() {
-  toggleBtn.textContent = video.paused ? '▶' : '❚❚';
-}
-toggleBtn.addEventListener('click', () => {
-  video.paused ? video.play() : video.pause();
+  audioOverlay.addEventListener('click', () => {
+    video.muted = false;
+    video.play().then(() => {
+      video.pause();
+      audioOverlay.style.display = 'none';
+    });
+  });
+
+  toggleBtn.addEventListener('click', () => {
+    if (video.paused) video.play();
+    else video.pause();
+    updateToggleBtn();
+  });
+
+  closeBtn.addEventListener('click', () => {
+    video.pause();
+    video.currentTime = 0;
+    videoEntity.object3D.visible = false;
+    updateToggleBtn();
+  });
+
+  target.addEventListener('targetFound', () => {
+    videoEntity.object3D.visible = true;
+    video.play();
+    updateToggleBtn();
+  });
+
+  target.addEventListener('targetLost', () => {
+    video.pause();
+    updateToggleBtn();
+  });
+
   updateToggleBtn();
-});
-
-// ❌ Close button
-closeBtn.addEventListener('click', () => {
-  video.pause();
-  video.currentTime = 0;
-  videoEntity.object3D.visible = false;
-  updateToggleBtn();
-});
-
-// 🎯 Show / hide on tracking
-target.addEventListener('targetFound', () => {
-  videoEntity.object3D.visible = true;
-  video.play();
-  updateToggleBtn();
-});
-target.addEventListener('targetLost', () => {
-  video.pause();
-  updateToggleBtn();
-});
-
-updateToggleBtn();
-
 };
 </script>
 
