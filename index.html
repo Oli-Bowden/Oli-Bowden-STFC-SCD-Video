@@ -2,33 +2,13 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>MindAR Video with Toggle Play/Pause + Close (Scaled Larger)</title>
+  <title>MindAR Video (Stabilised)</title>
 
-  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-
-  <!-- MindAR -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; }
-
-    /* Fullscreen enable audio overlay */
-    #enableAudioOverlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0, 0, 0, 0.9);
-      color: white;
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      cursor: pointer;
-      font-size: 24px;
-      text-align: center;
-      padding: 20px;
-    }
+    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
 
     .btn {
       position: fixed;
@@ -42,16 +22,12 @@
       line-height: 70px;
       border-radius: 50%;
       z-index: 1000;
-      font-family: Arial, sans-serif;
       user-select: none;
       cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    .btn:hover {
-      background: rgba(0,0,0,0.9);
     }
 
     #togglePlayPauseBtn { left: 20px; }
+
     #closeBtn {
       position: fixed;
       top: 20px;
@@ -65,127 +41,143 @@
       line-height: 55px;
       border-radius: 50%;
       z-index: 1000;
-      font-family: Arial, sans-serif;
-      user-select: none;
       cursor: pointer;
-      transition: background-color 0.3s ease;
     }
-    #closeBtn:hover {
-      background: rgba(0,0,0,0.9);
+
+    #audioOverlay {
+      position: fixed;
+      inset: 0;
+      background: black;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      z-index: 2000;
     }
   </style>
 </head>
 
 <body>
 
-  <div id="enableAudioOverlay">Tap anywhere to enable audio</div>
+<div id="audioOverlay">Tap to enable sound</div>
 
-  <a-scene
-    mindar-image="imageTargetSrc: targets.mind;"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: true"
-  >
-    <a-assets>
-      <video id="videoAsset"
-             src="video.mp4"
-             preload="auto"
-             loop
-             crossorigin="anonymous"
-             playsinline
-             webkit-playsinline
-             muted>
-      </video>
-    </a-assets>
+<a-scene
+  mindar-image="imageTargetSrc: targets.mind;"
+  vr-mode-ui="enabled: false"
+  device-orientation-permission-ui="enabled: true"
+>
+  <a-assets>
+    <video id="videoAsset"
+           src="video.mp4"
+           preload="auto"
+           loop
+           crossorigin="anonymous"
+           playsinline>
+    </video>
+  </a-assets>
 
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a-entity mindar-image-target="targetIndex: 0" id="target">
-      <a-video id="arVideo"
-               src="#videoAsset"
-               position="0 0 0"
-               visible="false">
-      </a-video>
-    </a-entity>
+  <a-entity mindar-image-target="targetIndex: 0" id="target">
+    <a-video id="arVideo"
+             src="#videoAsset"
+             width="1"
+             height="1"
+             position="0 0 0"
+             visible="false"
+             smooth-follow>
+    </a-video>
+  </a-entity>
 
-  </a-scene>
+</a-scene>
 
-  <div id="togglePlayPauseBtn" class="btn">▶</div>
-  <div id="closeBtn">✕</div>
+<div id="togglePlayPauseBtn" class="btn">▶</div>
+<div id="closeBtn">✕</div>
 
-  <script>
-    window.onload = () => {
-      const enableAudioOverlay = document.getElementById('enableAudioOverlay');
-      const video = document.querySelector('#videoAsset');
-      const videoEntity = document.querySelector('#arVideo');
-      const target = document.querySelector('#target');
+<script>
+/* ---------------- SMOOTHING COMPONENT ---------------- */
+AFRAME.registerComponent('smooth-follow', {
+  schema: { positionLerp: {default: 0.12}, rotationLerp: {default: 0.12} },
+  init() {
+    this.p = new THREE.Vector3();
+    this.q = new THREE.Quaternion();
+    this.ready = false;
+  },
+  tick() {
+    const o = this.el.object3D;
+    if (!this.ready) {
+      this.p.copy(o.position);
+      this.q.copy(o.quaternion);
+      this.ready = true;
+    }
+    this.p.lerp(o.position, this.data.positionLerp);
+    o.position.copy(this.p);
+    this.q.slerp(o.quaternion, this.data.rotationLerp);
+    o.quaternion.copy(this.q);
+  }
+});
+/* ------------------------------------------------------ */
 
-      const toggleBtn = document.getElementById('togglePlayPauseBtn');
-      const closeBtn = document.getElementById('closeBtn');
+window.onload = () => {
 
-      // Poster physical width in meters (A4 width approx 0.210m)
-      const posterWidth = 0.210;
-      // Video native resolution
-      const videoWidth = 1920;
-      const videoHeight = 1080;
+  const video = document.querySelector('#videoAsset');
+  const videoEntity = document.querySelector('#arVideo');
+  const target = document.querySelector('#target');
+  const toggleBtn = document.getElementById('togglePlayPauseBtn');
+  const closeBtn = document.getElementById('closeBtn');
+  const overlay = document.getElementById('audioOverlay');
 
-      // Scale multiplier to increase video size relative to poster size
-      const scaleMultiplier = 5;
+  /* ----- AUDIO UNLOCK ----- */
+  overlay.addEventListener('click', () => {
+    video.muted = false;
+    video.play().then(() => video.pause());
+    overlay.style.display = 'none';
+  });
 
-      // Set initial scale on video entity respecting aspect ratio and multiplier
-      function setVideoScale() {
-        const scaleX = posterWidth * scaleMultiplier;
-        const scaleY = (posterWidth * (videoHeight / videoWidth)) * scaleMultiplier;
-        videoEntity.object3D.scale.set(scaleX, scaleY, 1);
-      }
+  function updateBtn() {
+    toggleBtn.textContent = video.paused ? '▶' : '❚❚';
+  }
 
-      // Enable audio overlay tap handler
-      function enableAudio() {
-        video.muted = false;
-        video.play().then(() => video.pause());
-        enableAudioOverlay.style.display = 'none';
-      }
-      enableAudioOverlay.addEventListener('click', enableAudio);
+  toggleBtn.addEventListener('click', () => {
+    video.paused ? video.play() : video.pause();
+    updateBtn();
+  });
 
-      // Toggle play/pause and update button text
-      function updateToggleBtn() {
-        toggleBtn.textContent = video.paused ? '▶' : '❚❚';
-      }
+  closeBtn.addEventListener('click', () => {
+    video.pause();
+    video.currentTime = 0;
+    videoEntity.object3D.visible = false;
+    updateBtn();
+  });
 
-      toggleBtn.addEventListener('click', () => {
-        if (video.paused) {
-          video.play();
-        } else {
-          video.pause();
-        }
-        updateToggleBtn();
-      });
+  target.addEventListener('targetFound', () => {
+    videoEntity.object3D.visible = true;
+    video.play();
+    updateBtn();
+  });
 
-      // Close button stops video and hides it
-      closeBtn.addEventListener('click', () => {
-        video.pause();
-        video.currentTime = 0;
-        videoEntity.object3D.visible = false;
-        updateToggleBtn();
-      });
+  target.addEventListener('targetLost', () => {
+    video.pause();
+    updateBtn();
+  });
 
-      // Show video & auto-play on target found
-      target.addEventListener('targetFound', () => {
-        videoEntity.object3D.visible = true;
-        video.play();
-        updateToggleBtn();
-      });
+  /* ----- AUTO ASPECT RATIO + SCALE ----- */
+  video.addEventListener('loadedmetadata', () => {
+    const aspect = video.videoWidth / video.videoHeight; // 16:9
+    const posterWidth = 0.21; // A4 portrait width in metres
+    const scaleMultiplier = 2.2; // YOUR working value
 
-      // Pause video on target lost
-      target.addEventListener('targetLost', () => {
-        video.pause();
-        updateToggleBtn();
-      });
+    videoEntity.object3D.scale.set(
+      posterWidth * scaleMultiplier * aspect,
+      posterWidth * scaleMultiplier,
+      1
+    );
+  });
 
-      // Initialize video scale and button state
-      setVideoScale();
-      updateToggleBtn();
-    };
-  </script>
+  updateBtn();
+};
+</script>
 
 </body>
 </html>
