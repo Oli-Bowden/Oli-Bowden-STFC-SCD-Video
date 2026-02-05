@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>MindAR Video with Toggle Play/Pause + Close + Enable Audio</title>
+  <title>MindAR Video with Correct Aspect Ratio & Enable Sound Overlay</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -11,7 +11,25 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+    body { margin: 0; overflow: hidden; }
+
+    /* Full screen overlay for enabling sound */
+    #enableSoundOverlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 28px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      z-index: 2000;
+      user-select: none;
+      cursor: pointer;
+      padding: 20px;
+    }
 
     .btn {
       position: fixed;
@@ -25,6 +43,7 @@
       line-height: 70px;
       border-radius: 50%;
       z-index: 1000;
+      font-family: Arial, sans-serif;
       user-select: none;
       cursor: pointer;
       transition: background-color 0.3s ease;
@@ -47,6 +66,7 @@
       line-height: 55px;
       border-radius: 50%;
       z-index: 1000;
+      font-family: Arial, sans-serif;
       user-select: none;
       cursor: pointer;
       transition: background-color 0.3s ease;
@@ -54,151 +74,131 @@
     #closeBtn:hover {
       background: rgba(0,0,0,0.9);
     }
-
-    /* Fullscreen enable audio overlay */
-    #enableAudioOverlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.85);
-      color: white;
-      font-size: 24px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 2000;
-      user-select: none;
-      cursor: pointer;
-      text-align: center;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-    #enableAudioOverlay:hover {
-      background: rgba(0,0,0,0.95);
-    }
   </style>
 </head>
 
 <body>
 
-<a-scene
-  mindar-image="imageTargetSrc: targets.mind;"
-  vr-mode-ui="enabled: false"
-  device-orientation-permission-ui="enabled: true"
->
-  <a-assets>
-    <video id="videoAsset"
-           src="video.mp4"
-           preload="auto"
-           loop
-           crossorigin="anonymous"
-           playsinline
-           muted>
-    </video>
-  </a-assets>
+  <div id="enableSoundOverlay">Tap to enable sound</div>
 
-  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  <a-scene
+    mindar-image="imageTargetSrc: targets.mind;"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: true"
+  >
+    <a-assets>
+      <video id="videoAsset"
+             src="video.mp4"
+             preload="auto"
+             loop
+             crossorigin="anonymous"
+             playsinline
+             webkit-playsinline
+             muted>
+      </video>
+    </a-assets>
 
-  <a-entity mindar-image-target="targetIndex: 0" id="target">
-    <a-video id="arVideo"
-             src="#videoAsset"
-             width="1"
-             height="1"
-             position="0 0 0"
-             visible="false">
-    </a-video>
-  </a-entity>
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-</a-scene>
+    <a-entity mindar-image-target="targetIndex: 0" id="target">
+      <a-video id="arVideo"
+               src="#videoAsset"
+               position="0 0 0"
+               visible="false">
+      </a-video>
+    </a-entity>
 
-<div id="enableAudioOverlay">Tap to enable audio</div>
-<div id="togglePlayPauseBtn" class="btn" style="display:none;">▶</div>
-<div id="closeBtn" style="display:none;">✕</div>
+  </a-scene>
 
-<script>
-window.onload = () => {
-  const video = document.querySelector('#videoAsset');
-  const videoEntity = document.querySelector('#arVideo');
-  const target = document.querySelector('#target');
+  <div id="togglePlayPauseBtn" class="btn">▶</div>
+  <div id="closeBtn">✕</div>
 
-  const toggleBtn = document.getElementById('togglePlayPauseBtn');
-  const closeBtn = document.getElementById('closeBtn');
-  const enableAudioOverlay = document.getElementById('enableAudioOverlay');
+  <script>
+    window.onload = () => {
+      const video = document.querySelector('#videoAsset');
+      const videoEntity = document.querySelector('#arVideo');
+      const target = document.querySelector('#target');
 
+      const toggleBtn = document.getElementById('togglePlayPauseBtn');
+      const closeBtn = document.getElementById('closeBtn');
+      const enableSoundOverlay = document.getElementById('enableSoundOverlay');
 
-  // Show fullscreen overlay for enabling audio
-  enableAudioOverlay.addEventListener('click', () => {
-    video.muted = false;
-    video.play().then(() => video.pause());
-    enableAudioOverlay.style.display = 'none';
+      // Poster size in meters (A4 portrait): width = 0.21m, height = 0.297m
+      const posterWidth = 0.21;
+      const posterHeight = 0.297;
 
-    // Show controls after audio enabled
-    toggleBtn.style.display = 'block';
-    closeBtn.style.display = 'block';
-  });
+      // Video intrinsic size
+      const videoWidth = 1920;
+      const videoHeight = 1080;
 
-  // Once video metadata loaded, scale video correctly
-  video.addEventListener('loadedmetadata', () => {
-    const videoAspectRatio = video.videoWidth / video.videoHeight; // 16:9 = 1.7777...
+      // Calculate aspect ratios
+      const posterAspect = posterHeight / posterWidth;  // 0.297 / 0.21 = ~1.414 (portrait)
+      const videoAspect = videoHeight / videoWidth;    // 1080 / 1920 = 0.5625 (landscape)
 
-    // Calculate height to maintain aspect ratio with poster width
-    let videoWidth = posterWidth;
-    let videoHeight = posterWidth / videoAspectRatio;
+      // Decide scale factors to fit video to poster width
+      // We'll fix width to posterWidth, and scale height accordingly to keep video aspect ratio
+      // So width scale = posterWidth
+      // height scale = posterWidth * (videoHeight / videoWidth)
+      // But since the poster is portrait, video will be narrower in height.
 
-    // If height exceeds poster height, scale down based on height instead
-    if (videoHeight > posterHeight) {
-      videoHeight = posterHeight;
-      videoWidth = posterHeight * videoAspectRatio;
-    }
+      // So we scale videoEntity accordingly:
+      // We want video width to match posterWidth
+      // So scaleX = posterWidth
+      // scaleY = posterWidth * (videoHeight / videoWidth)
 
-    // Set width & height attributes on a-video (won't distort)
-    videoEntity.setAttribute('width', videoWidth);
-    videoEntity.setAttribute('height', videoHeight);
-  });
+      const scaleX = posterWidth;
+      const scaleY = posterWidth * (videoHeight / videoWidth);
 
-  // Play/pause button toggle
-  function updateToggleBtn() {
-    toggleBtn.textContent = video.paused ? '▶' : '❚❚';
-  }
+      videoEntity.object3D.scale.set(scaleX, scaleY, 1);
 
-  toggleBtn.addEventListener('click', () => {
-    if (video.paused) {
-      video.play();
-    } else {
-      video.pause();
-    }
-    updateToggleBtn();
-  });
+      // Enable sound on first tap
+      enableSoundOverlay.addEventListener('click', () => {
+        video.muted = false;
+        video.play().then(() => {
+          video.pause();
+          enableSoundOverlay.style.display = 'none';
+        });
+      });
 
-  // Close button functionality
-  closeBtn.addEventListener('click', () => {
-    video.pause();
-    video.currentTime = 0;
-    videoEntity.object3D.visible = false;
-    updateToggleBtn();
-  });
+      // Update toggle play/pause button
+      function updateToggleBtn() {
+        toggleBtn.textContent = video.paused ? '▶' : '❚❚';
+      }
 
-  // Show video & play when target found
-  target.addEventListener('targetFound', () => {
-    videoEntity.object3D.visible = true;
-    video.play();
-    updateToggleBtn();
-  });
+      toggleBtn.addEventListener('click', () => {
+        if (video.paused) {
+          video.play();
+        } else {
+          video.pause();
+        }
+        updateToggleBtn();
+      });
 
-  // Pause video when target lost
-  target.addEventListener('targetLost', () => {
-    video.pause();
-    updateToggleBtn();
-  });
+      closeBtn.addEventListener('click', () => {
+        video.pause();
+        video.currentTime = 0;
+        videoEntity.object3D.visible = false;
+        updateToggleBtn();
+      });
 
-  // Initialize video scale and button states
-  videoEntity.object3D.scale.set(1, 1, 1);
-  updateToggleBtn();
+      // Show video & auto-play on target found
+      target.addEventListener('targetFound', () => {
+        videoEntity.object3D.visible = true;
+        video.play();
+        updateToggleBtn();
+      });
 
-  // Hide controls initially (until audio enabled)
-  toggleBtn.style.display = 'none';
-  closeBtn.style.display = 'none';
-};
-</script>
+      // Pause video on target lost
+      target.addEventListener('targetLost', () => {
+        video.pause();
+        updateToggleBtn();
+      });
+
+      // Initialize button state & hide video initially
+      videoEntity.object3D.visible = false;
+      updateToggleBtn();
+    };
+  </script>
 
 </body>
 </html>
