@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>MindAR Video Poster</title>
+  <title>MindAR Video with Audio Controls</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -11,63 +11,117 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; }
+    body { margin: 0; overflow: hidden; font-family: Arial; }
+
+    #controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.75);
+      padding: 12px 18px;
+      border-radius: 16px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      z-index: 999;
+      color: white;
+    }
+
+    button {
+      font-size: 16px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+
+    input[type=range] {
+      width: 100px;
+    }
   </style>
 </head>
 
 <body>
 
+  <!-- AR Scene -->
   <a-scene
     mindar-image="imageTargetSrc: targets.mind;"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: true"
   >
-
-    <!-- CAMERA -->
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- VIDEO ASSET -->
-    <a-assets>
-      <video
-        id="arVideo"
-        src="video.mp4"
-        preload="auto"
-        loop
-        muted
-        playsinline
-        webkit-playsinline
-        crossorigin="anonymous">
-      </video>
-    </a-assets>
-
-    <!-- IMAGE TARGET -->
+    <!-- Image Target -->
     <a-entity mindar-image-target="targetIndex: 0" id="videoTarget">
-
-      <!-- VIDEO SCREEN -->
       <a-video
         src="#arVideo"
         width="1"
         height="0.56"
-        position="0 0 0">
-      </a-video>
-
+        position="0 0 0"
+      ></a-video>
     </a-entity>
-
   </a-scene>
+
+  <!-- Hidden video source -->
+  <video
+    id="arVideo"
+    src="video.mp4"
+    preload="auto"
+    loop
+    playsinline
+    webkit-playsinline
+    crossorigin="anonymous">
+  </video>
+
+  <!-- Controls -->
+  <div id="controls">
+    <button id="playPause">⏸</button>
+    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1">
+    <button id="soundUnlock">🔊 Enable Sound</button>
+  </div>
 
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const video = document.querySelector("#arVideo");
       const target = document.querySelector("#videoTarget");
 
-      // When poster is seen
+      const playPauseBtn = document.querySelector("#playPause");
+      const volumeSlider = document.querySelector("#volumeSlider");
+      const soundUnlock = document.querySelector("#soundUnlock");
+
+      // When poster is found → play
       target.addEventListener("targetFound", () => {
         video.play();
       });
 
-      // When poster is lost
+      // When poster is lost → pause
       target.addEventListener("targetLost", () => {
         video.pause();
+      });
+
+      // 🔊 Unlock sound (required on mobile)
+      soundUnlock.addEventListener("click", () => {
+        video.muted = false;
+        video.volume = volumeSlider.value;
+        video.play();
+        soundUnlock.style.display = "none";
+      });
+
+      // ▶️ Play / Pause
+      playPauseBtn.addEventListener("click", () => {
+        if (video.paused) {
+          video.play();
+          playPauseBtn.textContent = "⏸";
+        } else {
+          video.pause();
+          playPauseBtn.textContent = "▶️";
+        }
+      });
+
+      // 🔉 Volume control
+      volumeSlider.addEventListener("input", () => {
+        video.volume = volumeSlider.value;
       });
     });
   </script>
