@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>MindAR Video with Controls + Pinch Scale</title>
+  <title>MindAR Video with Toggle Play/Pause (No Scale)</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -20,7 +20,7 @@
       height: 70px;
       background: rgba(0,0,0,0.7);
       color: white;
-      font-size: 28px;
+      font-size: 36px;
       text-align: center;
       line-height: 70px;
       border-radius: 50%;
@@ -28,11 +28,13 @@
       font-family: Arial, sans-serif;
       user-select: none;
       cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .btn:hover {
+      background: rgba(0,0,0,0.9);
     }
 
-    #playBtn { left: 20px; }
-    #pauseBtn { left: 110px; }
-
+    #togglePlayPauseBtn { left: 20px; }
     #closeBtn {
       position: fixed;
       top: 20px;
@@ -49,6 +51,10 @@
       font-family: Arial, sans-serif;
       user-select: none;
       cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    #closeBtn:hover {
+      background: rgba(0,0,0,0.9);
     }
   </style>
 </head>
@@ -77,14 +83,14 @@
              src="#videoAsset"
              width="1.6"
              height="0.9"
-             position="0 0 0">
+             position="0 0 0"
+             visible="false">
     </a-video>
   </a-entity>
 
 </a-scene>
 
-<div id="playBtn" class="btn">▶</div>
-<div id="pauseBtn" class="btn">⏸</div>
+<div id="togglePlayPauseBtn" class="btn">▶</div>
 <div id="closeBtn">✕</div>
 
 <script>
@@ -94,80 +100,56 @@ window.onload = () => {
   const videoEntity = document.querySelector('#arVideo');
   const target = document.querySelector('#target');
 
-  const playBtn = document.getElementById('playBtn');
-  const pauseBtn = document.getElementById('pauseBtn');
+  const toggleBtn = document.getElementById('togglePlayPauseBtn');
   const closeBtn = document.getElementById('closeBtn');
 
-  // ---- Ensure audio works on mobile ----
+  // Enable audio on first user interaction (important for mobile autoplay)
   document.body.addEventListener('click', () => {
-    video.muted = false;
-    video.play().then(() => video.pause());
+    if (video.muted) {
+      video.muted = false;
+      video.play().then(() => video.pause());
+    }
   }, { once: true });
 
-  // ---- Play / Pause ----
-  playBtn.addEventListener('click', () => video.play());
-  pauseBtn.addEventListener('click', () => video.pause());
+  // Toggle play/pause and update button text
+  function updateToggleBtn() {
+    toggleBtn.textContent = video.paused ? '▶' : '❚❚';
+  }
 
-  // ---- Close Button ----
+  toggleBtn.addEventListener('click', () => {
+    if (video.paused) {
+      video.play();
+    } else {
+      video.pause();
+    }
+    updateToggleBtn();
+  });
+
+  // Close button stops video and hides it
   closeBtn.addEventListener('click', () => {
     video.pause();
     video.currentTime = 0;
     videoEntity.object3D.visible = false;
+    updateToggleBtn();
   });
 
-  // ---- Show video when tracked ----
-  target.addEventListener("targetFound", () => {
+  // Show video & auto-play on target found
+  target.addEventListener('targetFound', () => {
     videoEntity.object3D.visible = true;
     video.play();
+    updateToggleBtn();
   });
 
-  target.addEventListener("targetLost", () => {
+  // Pause video on target lost
+  target.addEventListener('targetLost', () => {
     video.pause();
+    updateToggleBtn();
   });
 
-  // ===============================
-  // 🤏 PINCH TO SCALE
-  // ===============================
-  let currentScale = 1;
-  let initialPinchDistance = null;
+  // Initialize scale and button state
+  videoEntity.object3D.scale.set(1, 1, 1);
+  updateToggleBtn();
 
-  function getDistance(touches) {
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  function onTouchStart(e) {
-    if (e.touches.length === 2) {
-      initialPinchDistance = getDistance(e.touches);
-      e.preventDefault();
-    }
-  }
-
-  function onTouchMove(e) {
-    if (e.touches.length === 2 && initialPinchDistance) {
-      const currentDistance = getDistance(e.touches);
-      const scaleChange = currentDistance / initialPinchDistance;
-
-      let newScale = currentScale * scaleChange;
-      newScale = Math.min(Math.max(newScale, 0.3), 3);
-
-      videoEntity.object3D.scale.set(newScale, newScale, newScale);
-      e.preventDefault();
-    }
-  }
-
-  function onTouchEnd(e) {
-    if (e.touches.length < 2) {
-      currentScale = videoEntity.object3D.scale.x;
-      initialPinchDistance = null;
-    }
-  }
-
-  videoEntity.addEventListener('touchstart', onTouchStart);
-  videoEntity.addEventListener('touchmove', onTouchMove);
-  videoEntity.addEventListener('touchend', onTouchEnd);
-  videoEntity.addEventListener('touchcancel', onTouchEnd);
 };
 </script>
 
