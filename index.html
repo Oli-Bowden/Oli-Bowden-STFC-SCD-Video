@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>MindAR Video with Toggle Play/Pause + Close Button</title>
+  <title>MindAR Video with Toggle Play/Pause and Enable Sound Overlay</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -12,6 +12,22 @@
 
   <style>
     body { margin: 0; overflow: hidden; }
+
+    /* Enable sound overlay */
+    #enableSoundOverlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.75);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 2em;
+      font-family: Arial, sans-serif;
+      z-index: 2000;
+      user-select: none;
+      cursor: pointer;
+    }
 
     .btn {
       position: fixed;
@@ -61,97 +77,100 @@
 
 <body>
 
-<a-scene
-  mindar-image="imageTargetSrc: targets.mind;"
-  vr-mode-ui="enabled: false"
-  device-orientation-permission-ui="enabled: true"
->
-  <a-assets>
-    <video id="videoAsset"
-           src="video.mp4"
-           preload="auto"
-           loop
-           crossorigin="anonymous"
-           playsinline>
-    </video>
-  </a-assets>
+  <div id="enableSoundOverlay">Tap to enable sound 🔊</div>
 
-  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  <a-scene
+    mindar-image="imageTargetSrc: targets.mind;"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: true"
+  >
+    <a-assets>
+      <video id="videoAsset"
+             src="video.mp4"
+             preload="auto"
+             loop
+             crossorigin="anonymous"
+             playsinline
+             muted>
+      </video>
+    </a-assets>
 
-  <a-entity mindar-image-target="targetIndex: 0" id="target">
-    <a-video id="arVideo"
-             src="#videoAsset"
-             width="0.6"
-             height="0.34"
-             position="0 0 0"
-             visible="false">
-    </a-video>
-  </a-entity>
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-</a-scene>
+    <a-entity mindar-image-target="targetIndex: 0" id="target">
+      <!-- A4 portrait approx size: 0.21m x 0.297m, adjust width & height -->
+      <a-video id="arVideo"
+               src="#videoAsset"
+               width="0.21"
+               height="0.297"
+               position="0 0 0"
+               visible="false">
+      </a-video>
+    </a-entity>
 
-<div id="togglePlayPauseBtn" class="btn">▶</div>
-<div id="closeBtn">✕</div>
+  </a-scene>
 
-<script>
-window.onload = () => {
+  <div id="togglePlayPauseBtn" class="btn">▶</div>
+  <div id="closeBtn">✕</div>
 
-  const video = document.querySelector('#videoAsset');
-  const videoEntity = document.querySelector('#arVideo');
-  const target = document.querySelector('#target');
+  <script>
+  window.onload = () => {
+    const video = document.querySelector('#videoAsset');
+    const videoEntity = document.querySelector('#arVideo');
+    const target = document.querySelector('#target');
 
-  const toggleBtn = document.getElementById('togglePlayPauseBtn');
-  const closeBtn = document.getElementById('closeBtn');
+    const toggleBtn = document.getElementById('togglePlayPauseBtn');
+    const closeBtn = document.getElementById('closeBtn');
+    const enableOverlay = document.getElementById('enableSoundOverlay');
 
-  // Enable audio on first user interaction (important for mobile autoplay)
-  document.body.addEventListener('click', () => {
-    if (video.muted) {
+    // Enable audio on first tap/click
+    function enableAudio() {
       video.muted = false;
       video.play().then(() => video.pause());
+      enableOverlay.style.display = 'none';
     }
-  }, { once: true });
 
-  // Toggle play/pause and update button text
-  function updateToggleBtn() {
-    toggleBtn.textContent = video.paused ? '▶' : '❚❚';
-  }
+    enableOverlay.addEventListener('click', enableAudio, { once: true });
 
-  toggleBtn.addEventListener('click', () => {
-    if (video.paused) {
-      video.play();
-    } else {
+    // Toggle play/pause and update button text
+    function updateToggleBtn() {
+      toggleBtn.textContent = video.paused ? '▶' : '❚❚';
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      if (video.paused) {
+        video.play();
+      } else {
+        video.pause();
+      }
+      updateToggleBtn();
+    });
+
+    // Close button stops video and hides it
+    closeBtn.addEventListener('click', () => {
       video.pause();
-    }
+      video.currentTime = 0;
+      videoEntity.object3D.visible = false;
+      updateToggleBtn();
+    });
+
+    // Show video & autoplay on target found
+    target.addEventListener('targetFound', () => {
+      videoEntity.object3D.visible = true;
+      video.play();
+      updateToggleBtn();
+    });
+
+    // Pause video on target lost
+    target.addEventListener('targetLost', () => {
+      video.pause();
+      updateToggleBtn();
+    });
+
+    // Initialize button state
     updateToggleBtn();
-  });
-
-  // Close button stops video and hides it
-  closeBtn.addEventListener('click', () => {
-    video.pause();
-    video.currentTime = 0;
-    videoEntity.object3D.visible = false;
-    updateToggleBtn();
-  });
-
-  // Show video & auto-play on target found
-  target.addEventListener('targetFound', () => {
-    videoEntity.object3D.visible = true;
-    video.play();
-    updateToggleBtn();
-  });
-
-  // Pause video on target lost
-  target.addEventListener('targetLost', () => {
-    video.pause();
-    updateToggleBtn();
-  });
-
-  // Initialize scale and button state
-  videoEntity.object3D.scale.set(1, 1, 1);
-  updateToggleBtn();
-
-};
-</script>
+  };
+  </script>
 
 </body>
 </html>
