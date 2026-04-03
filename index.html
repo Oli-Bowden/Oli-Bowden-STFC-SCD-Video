@@ -4,10 +4,7 @@
   <meta charset="utf-8" />
   <title>MindAR Video with Toggle Play/Pause + Close + Enable Audio</title>
 
-  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-
-  <!-- MindAR -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
@@ -34,6 +31,7 @@
     }
 
     #togglePlayPauseBtn { left: 20px; }
+
     #closeBtn {
       position: fixed;
       top: 20px;
@@ -55,7 +53,6 @@
       background: rgba(0,0,0,0.9);
     }
 
-    /* Enable Audio Overlay */
     #enableAudioOverlay {
       position: fixed;
       top: 50%;
@@ -100,10 +97,11 @@
   <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
   <a-entity mindar-image-target="targetIndex: 0" id="target">
+    <!-- ✅ FIX: default aspect ratio instead of square -->
     <a-video id="arVideo"
              src="#videoAsset"
-             width="1"
-             height="1"
+             width="1.6"
+             height="0.9"
              position="0 0 0"
              visible="false">
     </a-video>
@@ -125,22 +123,18 @@ window.onload = () => {
   const closeBtn = document.getElementById('closeBtn');
   const enableAudioOverlay = document.getElementById('enableAudioOverlay');
 
-  // Poster size in meters (A4)
   const posterWidth = 0.21;
   const posterHeight = 0.297;
 
-  // Enable audio overlay - wait for user interaction to unmute video
   enableAudioOverlay.addEventListener('click', () => {
     video.muted = false;
     video.play().then(() => video.pause());
     enableAudioOverlay.style.display = 'none';
 
-    // Show control buttons once audio enabled
     toggleBtn.style.display = 'block';
     closeBtn.style.display = 'block';
   });
 
-  // Calculate and set video size based on aspect ratio & poster size
   video.addEventListener('loadedmetadata', () => {
     const videoAspectRatio = video.videoWidth / video.videoHeight;
 
@@ -156,17 +150,13 @@ window.onload = () => {
     videoEntity.setAttribute('height', videoHeight);
   });
 
-  // Update play/pause button symbol
   function updateToggleBtn() {
     toggleBtn.textContent = video.paused ? '▶' : '❚❚';
   }
 
   toggleBtn.addEventListener('click', () => {
-    if (video.paused) {
-      video.play();
-    } else {
-      video.pause();
-    }
+    if (video.paused) video.play();
+    else video.pause();
     updateToggleBtn();
   });
 
@@ -177,24 +167,20 @@ window.onload = () => {
     updateToggleBtn();
   });
 
-  // Show video & auto-play on target found
   target.addEventListener('targetFound', () => {
     videoEntity.object3D.visible = true;
     video.play();
     updateToggleBtn();
   });
 
-  // Pause video on target lost
   target.addEventListener('targetLost', () => {
     video.pause();
     updateToggleBtn();
   });
 
-  // Initialize video scale and button states
   videoEntity.object3D.scale.set(1, 1, 1);
   updateToggleBtn();
 
-  // Initially hide control buttons until audio enabled
   toggleBtn.style.display = 'none';
   closeBtn.style.display = 'none';
 };
