@@ -10,69 +10,6 @@
   <style>
     body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
 
-    .btn {
-      position: fixed;
-      bottom: 20px;
-      width: 70px;
-      height: 70px;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      font-size: 36px;
-      text-align: center;
-      line-height: 70px;
-      border-radius: 50%;
-      z-index: 1000;
-      user-select: none;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    .btn:hover {
-      background: rgba(0,0,0,0.9);
-    }
-
-    #togglePlayPauseBtn { left: 20px; }
-
-    #closeBtn {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      width: 55px;
-      height: 55px;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      font-size: 26px;
-      text-align: center;
-      line-height: 55px;
-      border-radius: 50%;
-      z-index: 1000;
-      user-select: none;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    #closeBtn:hover {
-      background: rgba(0,0,0,0.9);
-    }
-
-    #enableAudioOverlay {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.8);
-      color: white;
-      padding: 25px 40px;
-      font-size: 22px;
-      border-radius: 12px;
-      z-index: 2000;
-      user-select: none;
-      cursor: pointer;
-      text-align: center;
-      max-width: 80vw;
-      box-shadow: 0 0 15px rgba(0,0,0,0.5);
-    }
-    #enableAudioOverlay:hover {
-      background: rgba(0,0,0,0.95);
-    }
   </style>
 </head>
 
@@ -111,7 +48,6 @@
 
 <div id="enableAudioOverlay">Tap to enable audio</div>
 <div id="togglePlayPauseBtn" class="btn" style="display:none;">▶</div>
-<div id="closeBtn" style="display:none;">✕</div>
 
 <script>
 window.onload = () => {
@@ -157,13 +93,6 @@ window.onload = () => {
   toggleBtn.addEventListener('click', () => {
     if (video.paused) video.play();
     else video.pause();
-    updateToggleBtn();
-  });
-
-  closeBtn.addEventListener('click', () => {
-    video.pause();
-    video.currentTime = 0;
-    videoEntity.object3D.visible = false;
     updateToggleBtn();
   });
 
