@@ -55,22 +55,23 @@
       background: rgba(0,0,0,0.9);
     }
 
-    /* Fullscreen enable audio overlay */
+    /* Enable Audio Overlay */
     #enableAudioOverlay {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.85);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.8);
       color: white;
-      font-size: 24px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      padding: 25px 40px;
+      font-size: 22px;
+      border-radius: 12px;
       z-index: 2000;
       user-select: none;
       cursor: pointer;
       text-align: center;
-      padding: 20px;
-      box-sizing: border-box;
+      max-width: 80vw;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
     }
     #enableAudioOverlay:hover {
       background: rgba(0,0,0,0.95);
@@ -124,38 +125,38 @@ window.onload = () => {
   const closeBtn = document.getElementById('closeBtn');
   const enableAudioOverlay = document.getElementById('enableAudioOverlay');
 
+  // Poster size in meters (A4)
+  const posterWidth = 0.21;
+  const posterHeight = 0.297;
 
-  // Show fullscreen overlay for enabling audio
+  // Enable audio overlay - wait for user interaction to unmute video
   enableAudioOverlay.addEventListener('click', () => {
     video.muted = false;
     video.play().then(() => video.pause());
     enableAudioOverlay.style.display = 'none';
 
-    // Show controls after audio enabled
+    // Show control buttons once audio enabled
     toggleBtn.style.display = 'block';
     closeBtn.style.display = 'block';
   });
 
-  // Once video metadata loaded, scale video correctly
+  // Calculate and set video size based on aspect ratio & poster size
   video.addEventListener('loadedmetadata', () => {
-    const videoAspectRatio = video.videoWidth / video.videoHeight; // 16:9 = 1.7777...
+    const videoAspectRatio = video.videoWidth / video.videoHeight;
 
-    // Calculate height to maintain aspect ratio with poster width
     let videoWidth = posterWidth;
     let videoHeight = posterWidth / videoAspectRatio;
 
-    // If height exceeds poster height, scale down based on height instead
     if (videoHeight > posterHeight) {
       videoHeight = posterHeight;
       videoWidth = posterHeight * videoAspectRatio;
     }
 
-    // Set width & height attributes on a-video (won't distort)
     videoEntity.setAttribute('width', videoWidth);
     videoEntity.setAttribute('height', videoHeight);
   });
 
-  // Play/pause button toggle
+  // Update play/pause button symbol
   function updateToggleBtn() {
     toggleBtn.textContent = video.paused ? '▶' : '❚❚';
   }
@@ -169,7 +170,6 @@ window.onload = () => {
     updateToggleBtn();
   });
 
-  // Close button functionality
   closeBtn.addEventListener('click', () => {
     video.pause();
     video.currentTime = 0;
@@ -177,14 +177,14 @@ window.onload = () => {
     updateToggleBtn();
   });
 
-  // Show video & play when target found
+  // Show video & auto-play on target found
   target.addEventListener('targetFound', () => {
     videoEntity.object3D.visible = true;
     video.play();
     updateToggleBtn();
   });
 
-  // Pause video when target lost
+  // Pause video on target lost
   target.addEventListener('targetLost', () => {
     video.pause();
     updateToggleBtn();
@@ -194,7 +194,7 @@ window.onload = () => {
   videoEntity.object3D.scale.set(1, 1, 1);
   updateToggleBtn();
 
-  // Hide controls initially (until audio enabled)
+  // Initially hide control buttons until audio enabled
   toggleBtn.style.display = 'none';
   closeBtn.style.display = 'none';
 };
